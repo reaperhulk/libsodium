@@ -1,0 +1,41 @@
+# Building
+
+To build this you can do the following in the current directory:
+
+* docker build -t vrf-fuzzer-image .
+* docker run --rm -i --privileged -e FUZZING_ENGINE=libfuzzer -e SANITIZER=address -t vrf-fuzzer-image /bin/bash
+
+Once you're in the shell you can simply type "compile" and it will build the fuzzers
+and write them into /out.
+
+These fuzzers are statically linked so you can copy the binary wherever or just run
+them with /out/vrf_fuzzer or /out/roundtrip_fuzzer
+
+If you specify a directory (e.g. /out/vrf_fuzzer ~/corpus) it will write unique
+inputs that result in improved coverage to the directory. You can also specify a
+directory with files already in it to bootstrap the initial set of known paths to
+improve the speed with which it finds new paths.
+
+The round trip fuzzer is really just abusing the fuzzer permutation engine to get
+quickcheck style property testing, while the vrf fuzzer actually feeds bad data
+into the various functions, so the vrf fuzzer is going to be more useful.
+
+# Alternate Modes
+
+If you'd like to run the fuzzer under an alternate sanitizer (e.g. MSAN or UBSAN)
+simply alter the SANITIZER value:
+
+docker run --rm -i --privileged -e FUZZING_ENGINE=libfuzzer -e SANITIZER=memory -t vrf-fuzzer-image /bin/bash
+docker run --rm -i --privileged -e FUZZING_ENGINE=libfuzzer -e SANITIZER=undefined -t vrf-fuzzer-image /bin/bash
+
+This image also supports alternate fuzzing engines, but I recommend sticking with
+libfuzzer for now.
+
+# Upstreaming
+
+Once the VRF code makes it into libsodium proper you can upstream this work by
+submitting the vrf_fuzzer.cc (and the roundtrip_fuzzer.cc if you want that sort
+of testing) to oss-fuzz as a PR adding them to the current libsodium project dir
+(https://github.com/google/oss-fuzz/tree/master/projects/libsodium). The existing
+code already searches for every file named *_fuzzer.cc so it will automatically
+build the new fuzzers and Google's infrastructure will run it all.
